@@ -1,0 +1,12 @@
+[project]
+name = "fastapi-address2zip"
+version = "0.1.0"
+description = "search zipcode from address info"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.116.1",
+    "httpx>=0.28.1",
+    "pytest>=8.4.1",
+    "uvicorn>=0.35.0",
+]

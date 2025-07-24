@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>住所→郵便番号変換API サンプル</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .examples {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .examples h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .example-item {
+            margin: 10px 0;
+            padding: 8px;
+            background-color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .example-item:hover {
+            background-color: #e9ecef;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+        }
+        .api-info {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e7f3ff;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>住所→郵便番号変換API</h1>
+        
+        <form id="addressForm">
+            <div class="form-group">
+                <label for="address">住所を入力してください：</label>
+                <input type="text" id="address" name="address" placeholder="例：東京都港区六本木5丁目" required>
+            </div>
+            <button type="submit" id="submitBtn">郵便番号を取得</button>
+        </form>
+
+        <div class="loading" id="loading">
+            処理中...
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <div class="examples">
+            <h3>サンプル住所（クリックで入力）</h3>
+            <div class="example-item" onclick="setAddress('東京都港区六本木5丁目')">東京都港区六本木5丁目</div>
+            <div class="example-item" onclick="setAddress('東京都千代田区神田小川町3-22-16')">東京都千代田区神田小川町3-22-16</div>
+            <div class="example-item" onclick="setAddress('東京都港区赤坂1丁目')">東京都港区赤坂1丁目</div>
+            <div class="example-item" onclick="setAddress('大阪府大阪市北区梅田1丁目')">大阪府大阪市北区梅田1丁目</div>
+            <div class="example-item" onclick="setAddress('北海道札幌市中央区北1条西1丁目')">北海道札幌市中央区北1条西1丁目</div>
+            <div class="example-item" onclick="setAddress('北海道上川郡東神楽町東三線20-125')">北海道上川郡東神楽町東三線20-125</div>
+        </div>
+
+        <div class="api-info">
+            <h3>API仕様</h3>
+            <p><strong>エンドポイント:</strong> POST /address2zipcode</p>
+            <p><strong>機能:</strong> 日本の住所文字列から7桁郵便番号を取得</p>
+            <p><strong>特徴:</strong></p>
+            <ul>
+                <li>住所の自動正規化（全角→半角、漢数字変換、番地除去）</li>
+                <li>階層検索による高精度な郵便番号検索</li>
+                <li>完全一致失敗時のフォールバック検索</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('addressForm');
+        const addressInput = document.getElementById('address');
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const address = addressInput.value.trim();
+            if (!address) {
+                showError('住所を入力してください');
+                return;
+            }
+
+            // UI状態の更新
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch('/address2zipcode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ address: address })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess(data);
+                } else {
+                    showError(data.detail || 'エラーが発生しました');
+                }
+            } catch (error) {
+                showError('通信エラーが発生しました: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        function showSuccess(data) {
+            result.className = 'result success';
+            result.innerHTML = `
+                <h3>変換結果</h3>
+                <p><strong>郵便番号:</strong> ${data.zipcode}</p>
+                <p><strong>元の住所:</strong> ${data.original_address}</p>
+                <p><strong>正規化後の住所:</strong> ${data.normalized_address}</p>
+            `;
+            result.style.display = 'block';
+        }
+
+        function showError(message) {
+            result.className = 'result error';
+            result.innerHTML = `
+                <h3>エラー</h3>
+                <p>${message}</p>
+            `;
+            result.style.display = 'block';
+        }
+
+        function setAddress(address) {
+            addressInput.value = address;
+            addressInput.focus();
+        }
+    </script>
+</body>
+</html>
