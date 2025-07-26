@@ -143,14 +143,51 @@
 
         <div class="api-info">
             <h3>API仕様</h3>
-            <p><strong>エンドポイント:</strong> POST /address2zipcode</p>
+            
+            <h4>エンドポイント: POST /address2zipcode</h4>
             <p><strong>機能:</strong> 日本の住所文字列から7桁郵便番号を取得</p>
-            <p><strong>特徴:</strong></p>
+            
+            <h4>リクエスト</h4>
+            <ul>
+                <li><strong>HTTPメソッド:</strong> POST</li>
+                <li><strong>Content-Type:</strong> application/json</li>
+                <li><strong>リクエストボディ:</strong></li>
+            </ul>
+            <pre style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 14px;">
+{
+  "address": "東京都港区六本木5丁目"
+}</pre>
+            
+            <h4>レスポンス</h4>
+            <p><strong>成功レスポンス (200):</strong></p>
+            <pre style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 14px;">
+{
+  "zipcode": "1060032",
+  "original_address": "東京都港区六本木５丁目",
+  "normalized_address": "東京都港区六本木5丁目"
+}</pre>
+            
+            <p><strong>エラーレスポンス:</strong></p>
+            <ul>
+                <li><strong>400:</strong> バリデーションエラー（空文字列等）</li>
+                <li><strong>404:</strong> 住所が見つからない場合</li>
+                <li><strong>422:</strong> Pydanticバリデーションエラー</li>
+                <li><strong>500:</strong> 内部エラー（住所解析失敗等）</li>
+            </ul>
+            
+            <h4>特徴</h4>
             <ul>
                 <li>住所の自動正規化（全角→半角、漢数字変換、番地除去）</li>
                 <li>階層検索による高精度な郵便番号検索</li>
                 <li>完全一致失敗時のフォールバック検索</li>
             </ul>
+            
+            <h4>使用例</h4>
+            <p><strong>curl:</strong></p>
+            <pre style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 14px;">
+curl -X POST "http://localhost:8000/address2zipcode" \
+     -H "Content-Type: application/json" \
+     -d '{"address": "東京都港区六本木5丁目"}'</pre>
         </div>
     </div>
 

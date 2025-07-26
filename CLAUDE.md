@@ -25,14 +25,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### GET `/`
 住所変換APIを使用するサンプルアプリケーションのHTMLページ
 
+**リクエスト:**
+- HTTPメソッド: GET
+- パラメータ: なし
+- ヘッダー: 特別な要件なし
+
+**レスポンス (200):**
+- Content-Type: `text/html; charset=utf-8`
+- Body: HTMLページコンテンツ
+
 **機能:**
 - 住所入力フォーム付きのWebインターフェース
-- サンプル住所のクリック入力機能
-- リアルタイム住所変換デモ
+- サンプル住所のクリック入力機能（6つのプリセット住所）
+- リアルタイム住所変換デモ（JavaScriptによる非同期通信）
 - API仕様の説明表示
+- レスポンシブデザインのモダンUI
 
-**レスポンス:**
-- HTMLページ（Content-Type: text/html; charset=utf-8）
+**エラーレスポンス:**
+- 500: テンプレートファイル（`templates/index.html`）の読み込み失敗
 
 ### POST `/address2zipcode`
 住所文字列から7桁郵便番号を取得するメインAPI

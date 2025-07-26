@@ -36,11 +36,36 @@ resolver = AddressResolver(csv_path)
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    """サンプルアプリケーションのHTMLページを返す"""
-    template_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
-    with open(template_path, "r", encoding="utf-8") as f:
-        html_content = f.read()
-    return html_content
+    """
+    住所変換APIを使用するサンプルアプリケーションのHTMLページを返す
+    
+    住所入力フォーム付きのWebインターフェースを提供し、以下の機能を含む：
+    - 住所入力フォームとリアルタイム住所変換デモ
+    - サンプル住所のクリック入力機能
+    - API仕様の説明表示
+    - レスポンシブデザインのUI
+    
+    Returns:
+        HTMLResponse: UTF-8エンコーディングのHTMLページ (Content-Type: text/html; charset=utf-8)
+        
+    Raises:
+        HTTPException: テンプレートファイルの読み込みに失敗した場合（500）
+    """
+    try:
+        template_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
+        with open(template_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+        return html_content
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=500,
+            detail="テンプレートファイルが見つかりません"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"テンプレートファイルの読み込みに失敗しました: {str(e)}"
+        )
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
