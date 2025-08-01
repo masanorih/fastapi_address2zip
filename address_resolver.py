@@ -105,21 +105,27 @@ class AddressResolver:
         # 丁目範囲情報は保持（例：「北四条西（１〜１９丁目）」はそのまま保持）
         # 建物名等の不要な括弧情報のみ除去
         
-        # 丁目範囲パターンをチェック
-        chome_range_pattern = r'（[０-９一二三四五六七八九十\d]+〜[０-９一二三四五六七八九十\d]+丁目）'
-        has_chome_range = re.search(chome_range_pattern, district)
+        # 丁目範囲パターンをチェック（波ダッシュ、ハイフン、カンマ区切り）
+        chome_range_patterns = [
+            r'（[０-９一二三四五六七八九十\d]+〜[０-９一二三四五六七八九十\d]+丁目）',  # 波ダッシュ
+            r'（[０-９\d]+−[０-９\d]+丁目）',  # ハイフン
+            r'（[０-９\d]+、[０-９\d]+丁目）'   # カンマ
+        ]
+        has_chome_range = any(re.search(pattern, district) for pattern in chome_range_patterns)
         
         if has_chome_range:
             # 丁目範囲情報がある場合は保持
             return district.strip()
         else:
-            # 特定番地情報や「その他」情報は保持
+            # 特定番地情報、「その他」情報、村名地区情報は保持
             specific_address_pattern = r'（[０-９\d]+番地）'
             others_pattern = r'（その他）'
+            village_district_pattern = r'(.+村)（(.+)）'
             
             if (re.search(specific_address_pattern, district) or 
-                re.search(others_pattern, district)):
-                # 特定番地情報や「その他」情報がある場合は保持
+                re.search(others_pattern, district) or
+                re.search(village_district_pattern, district)):
+                # 特定番地情報、「その他」情報、村名地区情報がある場合は保持
                 return district.strip()
             else:
                 # その他の括弧内情報のみ除去
@@ -235,6 +241,23 @@ class AddressResolver:
             if start_num is not None and end_num is not None:
                 return (start_num, end_num)
         
+        # ハイフン区切りの範囲パターン（例：「（３−５丁目）」）
+        hyphen_match = re.search(r'（([０-９\d]+)−([０-９\d]+)丁目）', district)
+        if hyphen_match:
+            start_str = hyphen_match.group(1).translate(str.maketrans('０１２３４５６７８９', '0123456789'))
+            end_str = hyphen_match.group(2).translate(str.maketrans('０１２３４５６７８９', '0123456789'))
+            return (int(start_str), int(end_str))
+        
+        # カンマ区切りの個別列挙パターン（例：「（１、２丁目）」）
+        comma_match = re.search(r'（([０-９\d]+)、([０-９\d]+)丁目）', district)
+        if comma_match:
+            first_str = comma_match.group(1).translate(str.maketrans('０１２３４５６７８９', '0123456789'))
+            second_str = comma_match.group(2).translate(str.maketrans('０１２３４５６７８９', '0123456789'))
+            # 個別列挙の場合は最小値と最大値を範囲として扱う
+            first_num = int(first_str)
+            second_num = int(second_str)
+            return (min(first_num, second_num), max(first_num, second_num))
+        
         return None
     
     def _is_chome_in_range(self, chome_num: int, range_district: str) -> bool:
@@ -282,6 +305,39 @@ class AddressResolver:
                     return True
         
         return False
+    
+    def _matches_village_district(self, input_district: str, village_entries: list) -> Optional[str]:
+        """
+        入力住所が村名+地区名エントリと一致するかチェックし、一致する郵便番号を返す
+        
+        Args:
+            input_district (str): 入力住所の町域部分（例：「声問村恵北」）
+            village_entries (list): 村名エントリのリスト [(stored_district, zipcode), ...]
+            
+        Returns:
+            Optional[str]: 一致する郵便番号、見つからない場合はNone
+        """
+        # 村名+地区名パターンをチェック（例：「声問村恵北」→「声問村」+「恵北」）
+        village_match = re.match(r'(.+村)(.+)', input_district)
+        if not village_match:
+            return None
+            
+        village_name = village_match.group(1)  # 「声問村」
+        district_name = village_match.group(2)  # 「恵北」
+        
+        for stored_district, zipcode in village_entries:
+            # 辞書の村名（地区名）パターンをチェック（例：「声問村（恵北）」）
+            stored_match = re.match(r'(.+村)（(.+)）', stored_district)
+            if stored_match:
+                stored_village = stored_match.group(1)  # 「声問村」
+                stored_district_name = stored_match.group(2)  # 「恵北」
+                
+                # 村名と地区名の両方が一致するかチェック
+                if (village_name == stored_village and 
+                    district_name == stored_district_name):
+                    return zipcode
+        
+        return None
     
     def _exact_match(self, address: str) -> Optional[str]:
         """
@@ -384,7 +440,12 @@ class AddressResolver:
                             # 特定番地にマッチしない場合は「その他」を優先
                             return others_entries[0][1]
                     
-                    # 特定番地エントリがない場合は最初の候補を返す
+                    # 村名+地区名照合を実行
+                    village_result = self._matches_village_district(district, matching_candidates)
+                    if village_result:
+                        return village_result
+                    
+                    # 特定の照合にマッチしない場合は最初の候補を返す
                     return matching_candidates[0][1]
                 
                 # Phase 2: 部分文字列検索

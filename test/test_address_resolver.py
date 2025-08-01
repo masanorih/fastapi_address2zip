@@ -2,6 +2,7 @@ import pytest
 import tempfile
 import os
 from address_resolver import AddressResolver
+from .conftest import requires_ken_all_csv
 
 
 class TestAddressResolver:
@@ -178,6 +179,7 @@ class TestAddressResolver:
         finally:
             os.unlink(temp_file.name)
     
+    @requires_ken_all_csv
     def test_generic_fallback_search_okinawa_ishitaira(self):
         """沖縄県北中城村石平の汎用フォールバック検索テスト"""
         # 実際のken_all.csvを使用（「以下に掲載がない場合」エントリが存在）
@@ -187,6 +189,7 @@ class TestAddressResolver:
         result = resolver.resolve("沖縄県中頭郡北中城村石平1951")
         assert result == "9012300"  # 「以下に掲載がない場合」の郵便番号
     
+    @requires_ken_all_csv
     def test_generic_fallback_search_direct_method(self):
         """汎用フォールバック検索の直接メソッドテスト"""
         resolver = AddressResolver('ken_all.csv')
@@ -195,6 +198,7 @@ class TestAddressResolver:
         result = resolver._generic_fallback_search("沖縄県中頭郡北中城村石平1951")
         assert result == "9012300"
     
+    @requires_ken_all_csv
     def test_generic_fallback_search_nonexistent(self):
         """存在しない市区町村での汎用フォールバック検索テスト"""
         resolver = AddressResolver('ken_all.csv')
@@ -203,6 +207,7 @@ class TestAddressResolver:
         result = resolver._generic_fallback_search("存在しない県存在しない市存在しない町")
         assert result is None
     
+    @requires_ken_all_csv
     def test_resolve_amami_sumiyoucho_with_oaza(self):
         """奄美市住用町大字山間の検索テスト（大字削除機能確認）"""
         resolver = AddressResolver('ken_all.csv')
@@ -211,6 +216,7 @@ class TestAddressResolver:
         result = resolver.resolve("鹿児島県奄美市住用町大字山間戸玉593-3")
         assert result == "8941304"  # 住用町山間の郵便番号
     
+    @requires_ken_all_csv
     def test_resolve_oaza_normalization(self):
         """大字正規化機能の統合テスト"""
         resolver = AddressResolver('ken_all.csv')
@@ -220,6 +226,7 @@ class TestAddressResolver:
         assert "大字" not in normalized
         assert "住用町山間戸玉" in normalized
     
+    @requires_ken_all_csv
     def test_resolve_sapporo_kitashijo_nishi_range_search(self):
         """札幌市北四条西の丁目範囲検索テスト（現在失敗予定）"""
         resolver = AddressResolver('ken_all.csv')
@@ -232,6 +239,7 @@ class TestAddressResolver:
         result = resolver.resolve("北海道札幌市中央区北四条西5丁目")
         assert result == "0600004", f"Expected 0600004 but got {result}"
     
+    @requires_ken_all_csv
     def test_resolve_sapporo_kitashijo_nishi_boundary_cases(self):
         """札幌市北四条西の境界値テスト"""
         resolver = AddressResolver('ken_all.csv')
@@ -246,6 +254,7 @@ class TestAddressResolver:
         result = resolver.resolve("北海道札幌市中央区北四条西30丁目")  # 20-30範囲の上限
         assert result == "0640824", f"Expected 0640824 for 30丁目 but got {result}"
     
+    @requires_ken_all_csv
     def test_resolve_sapporo_kitashijo_nishi_full_address(self):
         """札幌市北四条西の完全住所での範囲検索テスト"""
         resolver = AddressResolver('ken_all.csv')
@@ -261,6 +270,7 @@ class TestAddressResolver:
         result = resolver.resolve("北海道札幌市中央区北四条西２０丁目")
         assert result == "0640824", f"Expected 0640824 for 北四条西２０丁目 but got {result}"
     
+    @requires_ken_all_csv
     def test_kanji_to_number_conversion_extended(self):
         """漢数字変換の拡張テスト（1-48対応）"""
         resolver = AddressResolver('ken_all.csv')
@@ -291,6 +301,7 @@ class TestAddressResolver:
         assert resolver._convert_kanji_to_number('') is None     # 空文字
         assert resolver._convert_kanji_to_number('あ') is None   # 漢数字以外
     
+    @requires_ken_all_csv
     def test_extract_chome_number_extended(self):
         """丁目番号抽出の拡張テスト（1-48対応）"""
         resolver = AddressResolver('ken_all.csv')
@@ -316,6 +327,7 @@ class TestAddressResolver:
         # 丁目がない場合
         assert resolver._extract_chome_number('六本木') is None
     
+    @requires_ken_all_csv
     def test_niigata_nagaoka_wakigawa_shindenmachi_specific_address(self):
         """新潟県長岡市脇川新田町の特定番地vs一般住所の判定テスト"""
         resolver = AddressResolver('ken_all.csv')
@@ -329,3 +341,48 @@ class TestAddressResolver:
         result_970 = resolver.resolve("新潟県長岡市脇川新田町970番地")
         expected_970 = "9540181"  # 脇川新田町（９７０番地）
         assert result_970 == expected_970, f"期待値: {expected_970}, 実際: {result_970}"
+    
+    @requires_ken_all_csv
+    def test_hokkaido_tomakomai_akebono_chome_range_search(self):
+        """北海道芫小牧市あけぼの町の丁目範囲検索テスト"""
+        resolver = AddressResolver('ken_all.csv')
+        
+        # 4丁目は3-5丁目範囲（0530056）が正解
+        result = resolver.resolve("北海道苫小牧市あけぼの町４丁目１")
+        expected = "0530056"  # あけぼの町（３〜５丁目）
+        assert result == expected, f"期待値: {expected}, 実際: {result}"
+        
+        # 1丁目は1、2丁目範囲（0591366）が正解
+        result_1 = resolver.resolve("北海道苫小牧市あけぼの町１丁目")
+        expected_1 = "0591366"  # あけぼの町（１、２丁目）
+        assert result_1 == expected_1, f"期待値: {expected_1}, 実際: {result_1}"
+        
+        # 2丁目は1、2丁目範囲（0591366）が正解
+        result_2 = resolver.resolve("北海道苫小牧市あけぼの町２丁目")
+        expected_2 = "0591366"  # あけぼの町（１、２丁目）
+        assert result_2 == expected_2, f"期待値: {expected_2}, 実際: {result_2}"
+        
+        # 5丁目は3-5丁目範囲（0530056）が正解
+        result_5 = resolver.resolve("北海道苫小牧市あけぼの町５丁目")
+        expected_5 = "0530056"  # あけぼの町（３〜５丁目）
+        assert result_5 == expected_5, f"期待値: {expected_5}, 実際: {result_5}"
+    
+    @requires_ken_all_csv
+    def test_hokkaido_wakkanai_koetoison_village_district_search(self):
+        """北海道稚内市声問村の村名+地区名検索テスト"""
+        resolver = AddressResolver('ken_all.csv')
+        
+        # 恵北地区は声問村（恵北）（0986645）が正解
+        result = resolver.resolve("北海道稚内市声問村恵北")
+        expected = "0986645"  # 声問村（恵北）
+        assert result == expected, f"期待値: {expected}, 実際: {result}"
+        
+        # 曙地区は声問村（曙）（0986565）が正解
+        result_akebono = resolver.resolve("北海道稚内市声問村曙")
+        expected_akebono = "0986565"  # 声問村（曙）
+        assert result_akebono == expected_akebono, f"期待値: {expected_akebono}, 実際: {result_akebono}"
+        
+        # 声問地区は声問村（声問）（0986642）が正解
+        result_koetoi = resolver.resolve("北海道稚内市声問村声問")
+        expected_koetoi = "0986642"  # 声問村（声問）
+        assert result_koetoi == expected_koetoi, f"期待値: {expected_koetoi}, 実際: {result_koetoi}"

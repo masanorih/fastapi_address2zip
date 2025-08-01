@@ -1,6 +1,6 @@
 # 住所→郵便番号変換API
 
-日本の住所文字列から7桁郵便番号を取得するFastAPI WebAPIシステム
+日本の住所文字列から7桁郵便番号を取得する FastAPI WebAPI システム
 
 ## 特徴
 
@@ -10,6 +10,18 @@
 - **Webインターフェース**: サンプルアプリケーション付き
 - **高品質**: 65テストケースによる包括的品質保証
 
+## 前提条件
+
+### 必須データファイル
+
+このアプリケーションの動作には **ken_all.csv** ファイルが必要です。
+
+- **ファイル名**: `ken_all.csv`
+- **配置場所**: プロジェクトルートディレクトリ
+- **入手先**: [日本郵便 郵便番号ダウンロード](https://www.post.japanpost.jp/zipcode/download.html)
+
+**重要**: このファイルはリポジトリに含まれていません。上記URLから最新版をダウンロードし、UTF-8エンコーディングで保存してください。
+
 ## クイックスタート
 
 ### 1. 依存関係インストール
@@ -17,15 +29,21 @@
 uv sync
 ```
 
-### 2. サーバー起動
+### 2. データファイル準備
+```bash
+# 日本郵便から ken_all.csv をダウンロードし、プロジェクトルートに配置
+# https://www.post.japanpost.jp/zipcode/download.html
+```
+
+### 3. サーバー起動
 ```bash
 uv run python main.py
 ```
 
-### 3. Webサンプルアクセス
+### 4. Webサンプルアクセス
 http://localhost:8000 でWebインターフェースを確認
 
-### 4. API呼び出し
+### 5. API呼び出し
 ```bash
 curl -X POST "http://localhost:8000/address2zipcode" \
   -H "Content-Type: application/json" \
@@ -86,6 +104,8 @@ curl -X POST "http://localhost:8000/address2zipcode" \
 uv run pytest test/ -v  # 全テスト実行（65ケース、1.1秒）
 ```
 
+**注意**: ken_all.csvが存在しない場合、一部のテストはスキップされます。完全なテスト実行には上記データファイルが必要です。
+
 ### 関連ドキュメント
 詳細な技術仕様は以下を参照：
 - `ARCHITECTURE.md` - 技術アーキテクチャ詳細
@@ -97,10 +117,10 @@ uv run pytest test/ -v  # 全テスト実行（65ケース、1.1秒）
 ├── main.py                    # FastAPI アプリケーション
 ├── address_normalizer.py      # 住所正規化機能
 ├── address_resolver.py        # 住所→郵便番号解決
-├── ken_all.csv               # 日本郵便データ
+├── ken_all.csv                # 日本郵便データ（要ダウンロード）
 ├── templates/
 │   └── index.html            # Webインターフェース
-└── test/                     # テストスイート
+└── test/                      # テストスイート
 ```
 
 ## 技術仕様
@@ -113,4 +133,12 @@ uv run pytest test/ -v  # 全テスト実行（65ケース、1.1秒）
 
 ## ライセンス
 
-このプロジェクトはMITライセンスの下で公開されています。
+このプロジェクトは [MIT License](./LICENSE) の下で公開されています。
+
+### 使用可能な範囲
+- ✅ 商用利用
+- ✅ 修正・改変
+- ✅ 配布・再配布  
+- ✅ プライベート利用
+
+詳細は [LICENSE](./LICENSE) ファイルをご確認ください。

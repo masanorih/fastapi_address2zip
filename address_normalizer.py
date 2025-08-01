@@ -243,11 +243,12 @@ class AddressNormalizer:
         if district_without_banchi != district and district_without_banchi.strip():
             variants.append(district_without_banchi)
         
-        # 5. 基本町域名を抽出（例：「脇川新田町南割下２−１」→「脇川新田町」）
-        # 町・新田町・大字などで区切る
+        # 5. 基本町域名を抽出（例：「脇川新田町南割下２−１」→「脇川新田町」、「声問村恵北」→「声問村」）
+        # 町・新田町・村・大字などで区切る
         base_patterns = [
             r'^(.*?町)',    # 町で終わる部分
-            r'^(.*?新田町)', # 新田町で終わる部分  
+            r'^(.*?新田町)', # 新田町で終わる部分
+            r'^(.*?村)',    # 村で終わる部分
             r'^(.*?大字)',   # 大字で終わる部分
         ]
         

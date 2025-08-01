@@ -1,10 +1,12 @@
 import pytest
 from fastapi.testclient import TestClient
 from main import app
+from .conftest import requires_ken_all_csv
 
 client = TestClient(app)
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_success():
     """住所から郵便番号取得のテスト - 成功ケース"""
     response = client.post("/address2zipcode", json={
@@ -16,6 +18,7 @@ def test_address_to_zipcode_success():
     assert data["zipcode"] == "1060032"
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_chiyoda():
     """東京都千代田区のテスト"""
     response = client.post("/address2zipcode", json={
@@ -26,6 +29,7 @@ def test_address_to_zipcode_chiyoda():
     assert data["zipcode"] == "1010052"
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_invalid_address():
     """無効な住所のテスト"""
     response = client.post("/address2zipcode", json={
@@ -87,6 +91,7 @@ def test_root_endpoint_contains_sample_addresses():
     assert "北海道上川郡東神楽町東三線20-125" in html_content
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_osaka_umeda_with_chome():
     """大阪府大阪市北区梅田1丁目のテスト - 丁目除去フォールバック"""
     response = client.post("/address2zipcode", json={
@@ -98,6 +103,7 @@ def test_address_to_zipcode_osaka_umeda_with_chome():
     assert data["original_address"] == "大阪府大阪市北区梅田1丁目"
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_chome_fallback_various():
     """様々な丁目付き住所のフォールバックテスト"""
     test_cases = [
@@ -114,6 +120,7 @@ def test_address_to_zipcode_chome_fallback_various():
         assert data["zipcode"] == expected_zipcode
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_sapporo_kita1jo_nishi1chome():
     """札幌住所「北1条西1丁目」のテスト - 算用数字→漢数字変換"""
     response = client.post("/address2zipcode", json={
@@ -125,6 +132,7 @@ def test_address_to_zipcode_sapporo_kita1jo_nishi1chome():
     assert data["original_address"] == "北海道札幌市中央区北1条西1丁目"
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_sapporo_various_patterns():
     """札幌住所の様々なパターンテスト"""
     # 実際のken_all.csvに存在する札幌の住所パターン
@@ -143,6 +151,7 @@ def test_address_to_zipcode_sapporo_various_patterns():
         assert data["zipcode"] == expected_zipcode
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_gun_cho_address():
     """郡部住所（郡+町）のAPIテスト"""
     response = client.post("/address2zipcode", json={
@@ -154,6 +163,7 @@ def test_address_to_zipcode_gun_cho_address():
     assert data["original_address"] == "北海道上川郡東神楽町東三線20-125"
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_gun_son_address():
     """郡部住所（郡+村）のAPIテスト"""
     response = client.post("/address2zipcode", json={
@@ -165,6 +175,7 @@ def test_address_to_zipcode_gun_son_address():
     assert data["original_address"] == "北海道石狩郡新篠津村あけぼの"
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_generic_fallback_okinawa():
     """沖縄県北中城村石平の汎用フォールバック検索APIテスト"""
     response = client.post("/address2zipcode", json={
@@ -176,6 +187,7 @@ def test_address_to_zipcode_generic_fallback_okinawa():
     assert data["original_address"] == "沖縄県中頭郡北中城村石平1951"
 
 
+@requires_ken_all_csv
 def test_address_to_zipcode_amami_oaza_removal():
     """奄美市住用町大字山間の大字削除機能APIテスト"""
     response = client.post("/address2zipcode", json={
