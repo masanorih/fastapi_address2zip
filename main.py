@@ -26,6 +26,9 @@ class ZipcodeResponse(BaseModel):
     zipcode: str
     original_address: str
     normalized_address: str
+    prefecture: str
+    city: str
+    district: str
 
 class HealthResponse(BaseModel):
     status: str
@@ -100,10 +103,16 @@ async def address_to_zipcode(request: AddressRequest):
         # 正規化された住所を取得
         normalized_address = resolver.normalizer.normalize(request.address)
         
+        # 住所を分割
+        prefecture, city, district = resolver.normalizer.parse_address(normalized_address)
+        
         return ZipcodeResponse(
             zipcode=zipcode,
             original_address=request.address,
-            normalized_address=normalized_address
+            normalized_address=normalized_address,
+            prefecture=prefecture,
+            city=city,
+            district=district
         )
     
     except ValueError as e:

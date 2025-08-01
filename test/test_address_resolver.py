@@ -219,3 +219,113 @@ class TestAddressResolver:
         normalized = resolver.normalizer.normalize("鹿児島県奄美市住用町大字山間戸玉593-3")
         assert "大字" not in normalized
         assert "住用町山間戸玉" in normalized
+    
+    def test_resolve_sapporo_kitashijo_nishi_range_search(self):
+        """札幌市北四条西の丁目範囲検索テスト（現在失敗予定）"""
+        resolver = AddressResolver('ken_all.csv')
+        
+        # 22丁目は20-30丁目範囲（0640824）であるべき
+        result = resolver.resolve("北海道札幌市中央区北四条西22丁目1-24")
+        assert result == "0640824", f"Expected 0640824 but got {result}"
+        
+        # 5丁目は1-19丁目範囲（0600004）であるべき
+        result = resolver.resolve("北海道札幌市中央区北四条西5丁目")
+        assert result == "0600004", f"Expected 0600004 but got {result}"
+    
+    def test_resolve_sapporo_kitashijo_nishi_boundary_cases(self):
+        """札幌市北四条西の境界値テスト"""
+        resolver = AddressResolver('ken_all.csv')
+        
+        # 境界値テスト
+        result = resolver.resolve("北海道札幌市中央区北四条西19丁目")  # 1-19範囲の上限
+        assert result == "0600004", f"Expected 0600004 for 19丁目 but got {result}"
+        
+        result = resolver.resolve("北海道札幌市中央区北四条西20丁目")  # 20-30範囲の下限
+        assert result == "0640824", f"Expected 0640824 for 20丁目 but got {result}"
+        
+        result = resolver.resolve("北海道札幌市中央区北四条西30丁目")  # 20-30範囲の上限
+        assert result == "0640824", f"Expected 0640824 for 30丁目 but got {result}"
+    
+    def test_resolve_sapporo_kitashijo_nishi_full_address(self):
+        """札幌市北四条西の完全住所での範囲検索テスト"""
+        resolver = AddressResolver('ken_all.csv')
+        
+        # 問題となっている具体的な住所
+        result = resolver.resolve("北海道札幌市中央区北四条西２２丁目１−２４")
+        assert result == "0640824", f"Expected 0640824 for 北四条西２２丁目１−２４ but got {result}"
+        
+        # 全角数字での境界値テスト
+        result = resolver.resolve("北海道札幌市中央区北四条西１９丁目")
+        assert result == "0600004", f"Expected 0600004 for 北四条西１９丁目 but got {result}"
+        
+        result = resolver.resolve("北海道札幌市中央区北四条西２０丁目")
+        assert result == "0640824", f"Expected 0640824 for 北四条西２０丁目 but got {result}"
+    
+    def test_kanji_to_number_conversion_extended(self):
+        """漢数字変換の拡張テスト（1-48対応）"""
+        resolver = AddressResolver('ken_all.csv')
+        
+        # 基本的な1桁の漢数字
+        assert resolver._convert_kanji_to_number('一') == 1
+        assert resolver._convert_kanji_to_number('九') == 9
+        
+        # 十の位
+        assert resolver._convert_kanji_to_number('十') == 10
+        assert resolver._convert_kanji_to_number('十一') == 11
+        assert resolver._convert_kanji_to_number('十九') == 19
+        assert resolver._convert_kanji_to_number('二十') == 20
+        assert resolver._convert_kanji_to_number('三十') == 30
+        assert resolver._convert_kanji_to_number('四十') == 40
+        
+        # 21-48の範囲
+        assert resolver._convert_kanji_to_number('二十一') == 21
+        assert resolver._convert_kanji_to_number('二十五') == 25
+        assert resolver._convert_kanji_to_number('三十一') == 31
+        assert resolver._convert_kanji_to_number('三十九') == 39
+        assert resolver._convert_kanji_to_number('四十一') == 41
+        assert resolver._convert_kanji_to_number('四十八') == 48
+        
+        # 無効な漢数字
+        assert resolver._convert_kanji_to_number('五十') is None  # 50は範囲外
+        assert resolver._convert_kanji_to_number('百') is None    # 100は範囲外
+        assert resolver._convert_kanji_to_number('') is None     # 空文字
+        assert resolver._convert_kanji_to_number('あ') is None   # 漢数字以外
+    
+    def test_extract_chome_number_extended(self):
+        """丁目番号抽出の拡張テスト（1-48対応）"""
+        resolver = AddressResolver('ken_all.csv')
+        
+        # 半角数字
+        assert resolver._extract_chome_number('六本木1丁目') == 1
+        assert resolver._extract_chome_number('六本木48丁目') == 48
+        
+        # 全角数字
+        assert resolver._extract_chome_number('六本木１丁目') == 1
+        assert resolver._extract_chome_number('六本木４８丁目') == 48
+        
+        # 漢数字（1-48対応）
+        assert resolver._extract_chome_number('六本木一丁目') == 1
+        assert resolver._extract_chome_number('六本木十丁目') == 10
+        assert resolver._extract_chome_number('六本木十一丁目') == 11
+        assert resolver._extract_chome_number('六本木二十丁目') == 20
+        assert resolver._extract_chome_number('六本木二十一丁目') == 21
+        assert resolver._extract_chome_number('六本木三十丁目') == 30
+        assert resolver._extract_chome_number('六本木四十丁目') == 40
+        assert resolver._extract_chome_number('六本木四十八丁目') == 48
+        
+        # 丁目がない場合
+        assert resolver._extract_chome_number('六本木') is None
+    
+    def test_niigata_nagaoka_wakigawa_shindenmachi_specific_address(self):
+        """新潟県長岡市脇川新田町の特定番地vs一般住所の判定テスト"""
+        resolver = AddressResolver('ken_all.csv')
+        
+        # 南割下２−１は970番地ではないため「その他」（9402461）が正解
+        result = resolver.resolve("新潟県長岡市脇川新田町南割下２−１")
+        expected = "9402461"  # 脇川新田町（その他）
+        assert result == expected, f"期待値: {expected}, 実際: {result}"
+        
+        # 970番地は特定番地エントリ（9540181）が正解
+        result_970 = resolver.resolve("新潟県長岡市脇川新田町970番地")
+        expected_970 = "9540181"  # 脇川新田町（９７０番地）
+        assert result_970 == expected_970, f"期待値: {expected_970}, 実際: {result_970}"

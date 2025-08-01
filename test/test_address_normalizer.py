@@ -191,3 +191,31 @@ class TestAddressNormalizer:
         result = self.normalizer.normalize(address)
         # 大字と字の両方が削除される
         assert result == "熊本県熊本市天明町"
+    
+    def test_parse_address_complex_city_names(self):
+        """地名に町・市が含まれる複雑な市区町村名の分割テスト"""
+        normalizer = AddressNormalizer()
+        
+        # 十日町市（地名に「町」が含まれる市）
+        prefecture, city, district = normalizer.parse_address("新潟県十日町市稲荷町3丁目")
+        assert prefecture == "新潟県"
+        assert city == "十日町市"
+        assert district == "稲荷町3丁目"
+        
+        # 四日市市（地名に「市」が含まれる市）
+        prefecture, city, district = normalizer.parse_address("三重県四日市市諏訪町")
+        assert prefecture == "三重県"
+        assert city == "四日市市"
+        assert district == "諏訪町"
+        
+        # 八千代市（通常のパターン）
+        prefecture, city, district = normalizer.parse_address("千葉県八千代市大和田新田")
+        assert prefecture == "千葉県"
+        assert city == "八千代市"
+        assert district == "大和田新田"
+        
+        # 町田市（地名に「町」が含まれる市）
+        prefecture, city, district = normalizer.parse_address("東京都町田市原町田")
+        assert prefecture == "東京都"
+        assert city == "町田市"
+        assert district == "原町田"
