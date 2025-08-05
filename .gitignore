@@ -9,3 +9,6 @@ ken_all.csv
 
 # Virtual environments
 .venv
+
+# Serena MCP (AI assistant files)
+.serena/
